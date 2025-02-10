@@ -1,0 +1,283 @@
+# vim: ft=bash
+
+__mk_cpp_project() {
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "${name}.cpp" <<END
+// ${name}.cpp
+#include <iostream>
+
+auto main() -> int {
+
+	std::cout << "I 💖 C++!\n";
+
+	return 0;
+
+}
+END
+			cat > Makefile <<END
+IN = ${name}.cpp
+OUT = ${name}.o
+COMPILER_FLAGS = -std=c++20 -Wall -Werror
+
+\$(OUT): \$(IN)
+	@g++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+
+run: \$(OUT)
+	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
+
+clean:
+	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__mk_c_project() {
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "${name}.c" <<END
+// ${name}.c
+#include <stdio.h>
+
+int main(void) {
+
+	printf("I 💖 C!\n");
+
+	return 0;
+
+}
+END
+			cat > Makefile <<END
+IN = ${name}.c
+OUT = ${name}.o
+COMPILER_FLAGS = -std=c17 -Wall -Werror
+
+\$(OUT): \$(IN)
+	@gcc -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+
+run: \$(OUT)
+	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
+
+clean:
+	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__mk_py_project() {
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "${name}.py" <<END
+#!/usr/bin/env python3
+'''${name}.py'''
+
+
+print("I 💖 Python!")
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__mk_lua_project() {
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "${name}.lua" <<END
+#!/usr/bin/env lua5
+--[[ ${name}.lua
+--]]
+
+
+print "I 💖 Lua!"
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__mk_go_project() {
+	# TODO: Create a pkg that is not "main".
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "main.go" <<END
+// main.go
+package main
+
+import "fmt"
+
+
+func main() {
+	fmt.Printf("I 💖 Go!\n")
+}
+END
+			cat > "${name}_test.go" <<END
+// main_test.go
+package main
+
+import "testing"
+
+
+func TestSomething(t *testing.T) {
+	// Given
+
+	// When
+
+	// Then
+}
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__mk_rust_project() {
+	name=${1}
+
+	if mkdir "${name}"; then
+		if cd "${name}"; then
+			cat > "main.rs" <<END
+// **/${name}/main.rs
+
+fn main() {
+	println!("I 💖 Rust!");
+}
+END
+			cat > Makefile <<END
+${name}: main.rs
+	@rustc -o ${name} main.rs
+
+run: ${name}
+	@if [ -e ./${name} ]; then ./${name}; fi
+
+clean:
+	@if [ -e ./${name} ]; then rm ./${name}; fi
+END
+		else
+			echo "Couldn't cd into ${name}"
+			return 1
+		fi
+	else
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+}
+
+__usage() {
+	cat <<END
+Usage:
+
+	mkproject lang name
+
+Create a project for that language and add some templates, makefiles, etc.
+
+"lang" can be one of:
+
+	C, c, Cpp, cpp, C++, c++, Python, python, py, Rust, rust, rs, Lua, lua, Go, go.
+
+"name" is the name of your project.
+
+END
+}
+
+
+mkproject () {
+	lang=${1}
+	name=${2}
+
+	if [ $# -ne 2 ]; then
+		__usage
+		return 1
+	fi
+
+	case $1 in
+		c|C)
+			lang="c";;
+		cpp|Cpp|c++|C++)
+			lang="cpp";;
+		py|python|Python)
+			lang="python";;
+		go|Go)
+			lang="go";;
+		rs|rust|Rust)
+			lang="rust";;
+		lua|Lua)
+			lang="lua";;
+		*)
+			;;
+	esac
+
+	if [ -d "${name}" ]; then
+		printf "There's already a directory named %s\n" "${name}"
+		return 1
+	fi
+
+	case $lang in
+		c)
+			__mk_c_project ${name}
+			;;
+		cpp)
+			__mk_cpp_project ${name}
+			;;
+		python)
+			__mk_py_project ${name}
+			;;
+		go)
+			__mk_go_project ${name}
+			;;
+		rust)
+			__mk_rust_project ${name}
+			;;
+		lua)
+			__mk_lua_project ${name}
+			;;
+		*)
+			printf "Language '${lang}' not supported yet.\n"
+			return 1
+			;;
+	esac
+
+	if [ $? -eq 0 ]; then
+		echo "Project ${name} created!"
+	else
+		echo "Couldn't create project ${name}..."
+	fi
+}
