@@ -92,7 +92,30 @@ __mk_py_project() {
 '''${name}.py'''
 
 
-print("I 💖 Python!")
+def main():
+    print("I 💖 Python!")
+    return 0
+
+
+if __name__ == "__main__":
+    main()
+END
+
+			cat > "test_${name}.py" <<END
+#!/usr/bin/env python3
+'''test_${name}.py'''
+
+import unittest
+import ${name}
+
+class TestFunc(unittest.TestCase):
+
+    def test_something(self):
+        self.assertEqual(0, ${name}.main(), "Oops!")
+
+
+if __name__ == "__main__":
+    unittest.main()
 END
 		else
 			echo "Couldn't cd into ${name}"
