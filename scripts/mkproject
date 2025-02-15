@@ -153,12 +153,25 @@ END
 __mk_go_project() {
 	# TODO: Create a pkg that is not "main".
 	name=${1}
+	pkg=
+
+	echo "Create a main package?"
+	select main in yes no
+	do
+		case $main in
+			yes) pkg=main;;
+			*) pkg=${name};;
+		esac
+		break
+	done
+
+	echo "Creating package ${pkg}..."
 
 	if mkdir "${name}"; then
 		if cd "${name}"; then
-			cat > "main.go" <<END
-// main.go
-package main
+			cat > "${pkg}.go" <<END
+// ${pkg}.go
+package ${pkg}
 
 import "fmt"
 
@@ -167,9 +180,9 @@ func main() {
 	fmt.Printf("I 💖 Go!\n")
 }
 END
-			cat > "${name}_test.go" <<END
-// main_test.go
-package main
+			cat > "${pkg}_test.go" <<END
+// ${pkg}_test.go
+package ${pkg}
 
 import "testing"
 
