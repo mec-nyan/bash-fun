@@ -1,7 +1,55 @@
 # vim: ft=bash
 
+__ask_yes_or_no() {
+	# TODO: Add options with $@ instead of just 'y/n'.
+	prompt="${1}"
+	default="${2:-no}"
+	default_msg="${3:-Using default option.}"
+	is_yes=
+
+	printf "🍑 %s (y/n) (default: %s)" "${prompt}" "${default}"
+
+	tries=0
+	while read -p ": " -n 1 is_yes; do
+		if [[ -z ${is_yes} ]]; then
+			case "${default}" in
+				y|yes|Y|Yes|YES)
+					is_yes=y;;
+				*)
+					is_yes=n;;
+			esac
+			printf "   %s" "${default_msg}"
+			break
+		fi
+		if [[ ${is_yes} =~ y|n ]]; then
+			break
+		fi
+
+		let tries+=1
+		if [[ $tries -eq 3 ]]; then
+			printf " - 💩 Fuck it! Fall back to defaults\n"
+			break
+		fi
+
+		printf "\n -- 👉 y or n? "
+	done
+
+	echo
+
+	[[ ${is_yes} == 'y' ]]
+}
+
 __mk_cpp_project() {
 	name=${1}
+	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
+	trailing_ret=$?
+
+	fun_sign=
+	if [[ $trailing_ret -eq 0 ]]; then
+		fun_sign="auto main() -> int"
+	else
+		fun_sign="int main()"
+	fi
 
 	if mkdir "${name}"; then
 		if cd "${name}"; then
@@ -9,7 +57,7 @@ __mk_cpp_project() {
 // ${name}.cpp
 #include <iostream>
 
-auto main() -> int {
+${fun_sign} {
 
 	std::cout << "I 💖 C++!\n";
 
@@ -20,7 +68,7 @@ END
 			cat > Makefile <<END
 IN = ${name}.cpp
 OUT = ${name}.o
-COMPILER_FLAGS = -std=c++20 -Wall -Werror
+COMPILER_FLAGS = -std=c++23 -Wall -Werror
 
 \$(OUT): \$(IN)
 	@g++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
@@ -44,11 +92,28 @@ END
 __mk_c_project() {
 	name=${1}
 
+	# I use these two a lot. Feel free to add your own.
+	__ask_yes_or_no "Include stdlib?" "no" "stdlib not included."
+	stdlib=$?
+	__ask_yes_or_no "Include iso646?" "no" "iso646 not included."
+	iso646=$?
+
+	incl_stdlib=
+	incl_iso646=
+
+	if [[ ${stdlib} -eq 0 ]]; then
+		incl_stdlib=$'\n'"#include <stdlib.h>"
+	fi
+
+	if [[ ${iso646} -eq 0 ]]; then
+		incl_iso646=$'\n'"#include <iso646.h>"
+	fi
+
 	if mkdir "${name}"; then
 		if cd "${name}"; then
 			cat > "${name}.c" <<END
-// ${name}.c
-#include <stdio.h>
+// ${name}.c${incl_iso646}
+#include <stdio.h>${incl_stdlib}
 
 int main(void) {
 
@@ -93,8 +158,12 @@ __mk_py_project() {
 
 
 def main():
-    print("I 💖 Python!")
+	print(love())
     return 0
+
+
+def love():
+    return "I 💖 Python!"
 
 
 if __name__ == "__main__":
@@ -110,7 +179,7 @@ import ${name}
 
 class TestFunc(unittest.TestCase):
 
-    def test_something(self):
+    def test_main(self):
         self.assertEqual(0, ${name}.main(), "Oops!")
 
 
@@ -134,7 +203,8 @@ __mk_lua_project() {
 		if cd "${name}"; then
 			cat > "${name}.lua" <<END
 #!/usr/bin/env lua5
---[[ ${name}.lua
+--[[
+--  ${name}.lua
 --]]
 
 
@@ -154,16 +224,13 @@ __mk_go_project() {
 	# TODO: Create a pkg that is not "main".
 	name=${1}
 	pkg=
+	func=
+	__ask_yes_or_no "Create a main package?" "no" "Creating a regular pkg."
 
-	echo "Create a main package?"
-	select main in yes no
-	do
-		case $main in
-			yes) pkg=main;;
-			*) pkg=${name};;
-		esac
-		break
-	done
+	case $? in
+		0) pkg=main; func=main;;
+		1) pkg=${name}; func=hello;;
+	esac
 
 	echo "Creating package ${pkg}..."
 
@@ -176,7 +243,7 @@ package ${pkg}
 import "fmt"
 
 
-func main() {
+func ${func}() {
 	fmt.Printf("I 💖 Go!\n")
 }
 END
@@ -207,33 +274,107 @@ END
 
 __mk_rust_project() {
 	name=${1}
+	__ask_yes_or_no "Use Cargo?" "yes" \
+		'Good choice! make will invoke cargo [run|test].'
+	cargo=$?
+	__ask_yes_or_no "Add tests?" "yes" "Adding sample test."
+	tests=$?
+	test_fn="_ret_zero"
+	sep_file=2
+	if [[ ${tests} -eq 0 ]]; then
+		__ask_yes_or_no "-- Put test on a separate file?" "yes" \
+			"A separate file it is..."
+		sep_file=$?
+	fi
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "main.rs" <<END
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+
+	if ! cd "${name}"; then
+		echo "Couldn't cd into ${name}"
+		return 1
+	fi
+
+	cat > "main.rs" <<END
 // **/${name}/main.rs
 
 fn main() {
 	println!("I 💖 Rust!");
 }
 END
-			cat > Makefile <<END
-${name}: main.rs
-	@rustc -o ${name} main.rs
 
-run: ${name}
-	@if [ -e ./${name} ]; then ./${name}; fi
+	if [[ ${tests} -eq 0 ]]; then
+		cat >> "main.rs" <<END
+
+fn ${test_fn}() -> i32 {
+	0	
+}
+END
+	fi
+
+	if [[ ${sep_file} -eq 0 ]]; then
+		cat >> "main.rs" <<END
+
+
+#[cfg(test)]
+mod tests;
+END
+		cat > "tests.rs" <<END
+// **/${name}/tests.rs
+
+use super::*;
+
+#[test]
+fn it_returns_zero() {
+	assert_eq!(0, ${test_fn}());
+}
+END
+	elif [[ ${sep_file} -eq 1 ]]; then
+	cat >> "main.rs" <<END
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn it_returns_zero() {
+		assert_eq!(0, ${test_fn}());
+	}
+}
+END
+	fi
+
+	if [[ ${cargo} -eq 0 ]]; then
+		# Why should I use make instead of Cargo directly?
+		# When you have several Rust programs in src/bin/** you
+		# need to tell cargo which one to run with "--bin name_of_bin" which
+		# is a bit tedious when you are running and testing your project.
+		cat > Makefile <<END
+run:
+	@cargo run --bin ${name}
+
+test:
+	@cargo test --bin ${name}
+END
+	else
+		# Using rustc. I've added '.o' to the binary so you can easily
+		# ignore it with "echo *.o >> .gitignore".
+		# TODO: Run tests without Cargo.
+		cat > Makefile <<END
+IN = main.rs
+OUT = ${name}.o
+
+\$(OUT): main.rs
+	@rustc -o \$(OUT) main.rs
+
+run: \$(OUT)
+	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
 
 clean:
-	@if [ -e ./${name} ]; then rm ./${name}; fi
+	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
 	fi
 }
 
