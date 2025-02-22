@@ -1,16 +1,24 @@
 # vim: ft=bash
 
+__a_fruit() {
+	local fruits=(🍒 🍑 🍌 🍎 🍏 🍇 🍊 🍍 🥝 🍉 🍈 🍋 🍐 🍓)
+	local index=$(( RANDOM % ${#fruits[@]} ))
+	echo "${fruits[$index]}"
+}
+
+# TODO: We may need a function that allows to select between multiple options.
+# i.e. for selecting language version, etc. For now we can use the builtin "select".
 __ask_yes_or_no() {
-	# TODO: Add options with $@ instead of just 'y/n'.
-	prompt="${1}"
-	default="${2:-no}"
-	default_msg="${3:-Using default option.}"
-	is_yes=
+	local prompt="${1}"
+	local default="${2:-no}"
+	local default_msg="${3:-Using default option.}"
+	local is_yes=
+	local fruit=$(__a_fruit)
 
-	printf "🍑 %s (y/n) (default: %s)" "${prompt}" "${default}"
+	printf "%s %s (y/n) (default: %s) " "${fruit}" "${prompt}" "${default}"
 
-	tries=0
-	while read -p ": " -n 1 is_yes; do
+	local tries=0
+	while read -p "> " -n 1 is_yes; do
 		if [[ -z ${is_yes} ]]; then
 			case "${default}" in
 				y|yes|Y|Yes|YES)
@@ -18,42 +26,53 @@ __ask_yes_or_no() {
 				*)
 					is_yes=n;;
 			esac
-			printf "   %s" "${default_msg}"
+			printf "   [2m%s[0m" "${default_msg}"
 			break
 		fi
+
 		if [[ ${is_yes} =~ y|n ]]; then
 			break
 		fi
 
 		let tries+=1
 		if [[ $tries -eq 3 ]]; then
-			printf " - 💩 Fuck it! Fall back to defaults\n"
+			printf "\n   [2;3mFuck it! Falling back to defaults.[0m 😑"
 			break
 		fi
 
-		printf "\n -- 👉 y or n? "
+		printf "\n[32m-> [0;3my or n?[0m "
 	done
 
 	echo
 
+	# 'y' returns 0, otherwise 1.
 	[[ ${is_yes} == 'y' ]]
 }
 
 __mk_cpp_project() {
-	name=${1}
-	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
-	trailing_ret=$?
+	local name=${1}
 
-	fun_sign=
+	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
+	local trailing_ret=$?
+
+	local fun_sign=
 	if [[ $trailing_ret -eq 0 ]]; then
 		fun_sign="auto main() -> int"
 	else
 		fun_sign="int main()"
 	fi
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "${name}.cpp" <<END
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}."
+		return 1
+	fi
+
+	if cd "${name}"; then
+		echo "Couldn't cd into ${name}."
+		return 1
+	fi
+
+	cat > "${name}.cpp" <<END
 // ${name}.cpp
 #include <iostream>
 
@@ -65,7 +84,8 @@ ${fun_sign} {
 
 }
 END
-			cat > Makefile <<END
+
+	cat > Makefile <<END
 IN = ${name}.cpp
 OUT = ${name}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror
@@ -79,41 +99,38 @@ run: \$(OUT)
 clean:
 	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
-	fi
 }
 
 __mk_c_project() {
-	name=${1}
+	local name=${1}
 
 	# I use these two a lot. Feel free to add your own.
 	__ask_yes_or_no "Include stdlib?" "no" "stdlib not included."
-	stdlib=$?
+	local stdlib=$?
 	__ask_yes_or_no "Include iso646?" "no" "iso646 not included."
-	iso646=$?
+	local iso646=$?
 
-	incl_stdlib=
-	incl_iso646=
-
-	if [[ ${stdlib} -eq 0 ]]; then
-		incl_stdlib=$'\n'"#include <stdlib.h>"
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}"
+		return 1
 	fi
 
-	if [[ ${iso646} -eq 0 ]]; then
-		incl_iso646=$'\n'"#include <iso646.h>"
+	if ! cd "${name}"; then
+		echo "Couldn't cd into ${name}"
+		return 1
 	fi
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "${name}.c" <<END
-// ${name}.c${incl_iso646}
-#include <stdio.h>${incl_stdlib}
+	local main="${name}.c"
+
+	echo "// ${name}.c" > "${main}"
+
+	[[ ${iso646} -eq 0 ]] && echo "#include <iso646.h>" >> "${main}"
+
+	echo '#include <stdio.h>' >> "${main}"
+
+	[[ ${stdlib} -eq 0 ]] && echo "#include <stdlib.h>" >> "${main}"
+
+	cat >> "${name}.c" <<END
 
 int main(void) {
 
@@ -123,7 +140,8 @@ int main(void) {
 
 }
 END
-			cat > Makefile <<END
+
+	cat > Makefile <<END
 IN = ${name}.c
 OUT = ${name}.o
 COMPILER_FLAGS = -std=c17 -Wall -Werror
@@ -137,22 +155,22 @@ run: \$(OUT)
 clean:
 	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
-	fi
 }
 
 __mk_py_project() {
-	name=${1}
+	local name=${1}
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "${name}.py" <<END
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+
+	if ! cd "${name}"; then
+		echo "Couldn't cd into ${name}"
+		return 1
+	fi
+
+	cat > "${name}.py" <<END
 #!/usr/bin/env python3
 '''${name}.py'''
 
@@ -170,7 +188,7 @@ if __name__ == "__main__":
     main()
 END
 
-			cat > "test_${name}.py" <<END
+	cat > "test_${name}.py" <<END
 #!/usr/bin/env python3
 '''test_${name}.py'''
 
@@ -186,22 +204,22 @@ class TestFunc(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
-	fi
 }
 
 __mk_lua_project() {
-	name=${1}
+	local name=${1}
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "${name}.lua" <<END
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+
+	if ! cd "${name}"; then
+		echo "Couldn't cd into ${name}"
+		return 1
+	fi
+
+	cat > "${name}.lua" <<END
 #!/usr/bin/env lua5
 --[[
 --  ${name}.lua
@@ -210,33 +228,33 @@ __mk_lua_project() {
 
 print "I 💖 Lua!"
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
-	fi
 }
 
 __mk_go_project() {
 	# TODO: Create a pkg that is not "main".
-	name=${1}
-	pkg=
-	func=
+	local name=${1}
+	local pkg=
+	local func=
 	__ask_yes_or_no "Create a main package?" "no" "Creating a regular pkg."
 
 	case $? in
 		0) pkg=main; func=main;;
-		1) pkg=${name}; func=hello;;
+		1) pkg=${name}; func=doStuff;;
 	esac
 
 	echo "Creating package ${pkg}..."
 
-	if mkdir "${name}"; then
-		if cd "${name}"; then
-			cat > "${pkg}.go" <<END
+	if ! mkdir "${name}"; then
+		echo "Couldn't create directory ${name}"
+		return 1
+	fi
+
+	if ! cd "${name}"; then
+		echo "Couldn't cd into ${name}"
+		return 1
+	fi
+
+	cat > "${pkg}.go" <<END
 // ${pkg}.go
 package ${pkg}
 
@@ -247,7 +265,8 @@ func ${func}() {
 	fmt.Printf("I 💖 Go!\n")
 }
 END
-			cat > "${pkg}_test.go" <<END
+
+	cat > "${pkg}_test.go" <<END
 // ${pkg}_test.go
 package ${pkg}
 
@@ -262,25 +281,21 @@ func TestSomething(t *testing.T) {
 	// Then
 }
 END
-		else
-			echo "Couldn't cd into ${name}"
-			return 1
-		fi
-	else
-		echo "Couldn't create directory ${name}"
-		return 1
-	fi
 }
 
 __mk_rust_project() {
-	name=${1}
+	local name=${1}
+
 	__ask_yes_or_no "Use Cargo?" "yes" \
 		'Good choice! make will invoke cargo [run|test].'
-	cargo=$?
+	local cargo=$?
+
 	__ask_yes_or_no "Add tests?" "yes" "Adding sample test."
-	tests=$?
-	test_fn="_ret_zero"
-	sep_file=2
+	local tests=$?
+
+	local test_fn="_ret_zero"
+	local sep_file=2
+
 	if [[ ${tests} -eq 0 ]]; then
 		__ask_yes_or_no "-- Put test on a separate file?" "yes" \
 			"A separate file it is..."
@@ -321,6 +336,7 @@ END
 #[cfg(test)]
 mod tests;
 END
+
 		cat > "tests.rs" <<END
 // **/${name}/tests.rs
 
@@ -331,8 +347,9 @@ fn it_returns_zero() {
 	assert_eq!(0, ${test_fn}());
 }
 END
+
 	elif [[ ${sep_file} -eq 1 ]]; then
-	cat >> "main.rs" <<END
+		cat >> "main.rs" <<END
 
 #[cfg(test)]
 mod tests {
@@ -397,15 +414,15 @@ END
 
 
 mkproject () {
-	lang=${1}
-	name=${2}
+	local lang=${1}
+	local name=${2}
 
 	if [ $# -ne 2 ]; then
 		__usage
 		return 1
 	fi
 
-	case $1 in
+	case ${lang} in
 		c|C)
 			lang="c";;
 		cpp|Cpp|c++|C++)
