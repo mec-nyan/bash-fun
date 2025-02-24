@@ -88,7 +88,7 @@ END
 	cat > Makefile <<END
 IN = ${name}.cpp
 OUT = ${name}.o
-COMPILER_FLAGS = -std=c++23 -Wall -Werror
+COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
 	@g++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
@@ -144,7 +144,7 @@ END
 	cat > Makefile <<END
 IN = ${name}.c
 OUT = ${name}.o
-COMPILER_FLAGS = -std=c17 -Wall -Werror
+COMPILER_FLAGS = -std=c17 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
 	@gcc -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
@@ -176,7 +176,7 @@ __mk_py_project() {
 
 
 def main():
-	print(love())
+    print(love())
     return 0
 
 
