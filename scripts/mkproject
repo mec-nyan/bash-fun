@@ -67,7 +67,7 @@ __mk_cpp_project() {
 		return 1
 	fi
 
-	if cd "${name}"; then
+	if ! cd "${name}"; then
 		echo "Couldn't cd into ${name}."
 		return 1
 	fi
