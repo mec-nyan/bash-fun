@@ -91,7 +91,7 @@ OUT = ${name}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@g++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@clang++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
@@ -144,10 +144,10 @@ END
 	cat > Makefile <<END
 IN = ${name}.c
 OUT = ${name}.o
-COMPILER_FLAGS = -std=c17 -Wall -Werror -Wpedantic
+COMPILER_FLAGS = -std=c23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@gcc -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@clang -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
