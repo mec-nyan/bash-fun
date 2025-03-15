@@ -91,7 +91,7 @@ OUT = ${name}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@clang++ -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@g++-14 -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
@@ -147,7 +147,7 @@ OUT = ${name}.o
 COMPILER_FLAGS = -std=c23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@clang -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@gcc-14 -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
