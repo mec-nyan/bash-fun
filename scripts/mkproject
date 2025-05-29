@@ -62,6 +62,17 @@ __mk_cpp_project() {
 		fun_sign="int main()"
 	fi
 
+	__ask_yes_or_no "Use std::print?" "no" "Use std::cout"
+	local std_print=$?
+
+	local print_love="cout << \"I 💖 C++!\n\""
+	local include="iostream"
+
+	if [[ $std_print -eq 0 ]]; then
+		print_love="println(\"I 💖 C++!\")"
+		local include="print"
+	fi
+
 	if ! mkdir "${name}"; then
 		echo "Couldn't create directory ${name}."
 		return 1
@@ -74,11 +85,11 @@ __mk_cpp_project() {
 
 	cat > "${name}.cpp" <<END
 // ${name}.cpp
-#include <iostream>
+#include <${include}>
 
 ${fun_sign} {
 
-	std::cout << "I 💖 C++!\n";
+	std::${print_love};
 
 	return 0;
 
