@@ -49,6 +49,52 @@ __ask_yes_or_no() {
 	[[ ${is_yes} == 'y' ]]
 }
 
+__print_list() {
+	local selected=${1}
+	local options=(${2})
+	local full="▪"
+	local empty="▫"
+
+	for i in "${!options[@]}"; do
+		local current=$empty
+		if [[ $i -eq $selected ]]; then
+			current=$full
+		fi
+		# TODO: Colours...
+		printf "   %s - %s\n" $current ${options[$i]}
+	done
+}
+
+__choose() {
+	local prompt=$1
+	local selected=0
+
+	printf "%s %s\n" $(__a_fruit) "$prompt"
+
+	# Save cursor position
+	echo -e -n "\E7"
+
+	local options=($2)
+	__print_list 0 "${options[*]}"
+
+	local current=0
+	local last=${#options[@]}
+	while read -s -p "     [2;3mmove: j/k, toggle: space, accept: enter [0m" -n 1 option; do
+		if [[ -z $option ]]; then break; fi
+		case $option in
+			j) ((current < (last-1))) && let current=$current+1;;
+			k) ((current > 0)) && let current=$current-1;;
+			*) :;;
+		esac
+		echo -e -n "\E8"
+		__print_list $current "${options[*]}"
+	done
+
+	echo
+
+	return $current
+}
+
 __mk_cpp_project() {
 	local name=${1}
 
@@ -67,6 +113,14 @@ __mk_cpp_project() {
 
 	local print_love="cout << \"I 💖 C++!\n\""
 	local include="iostream"
+
+	__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
+	local use_std=$?
+
+	# Select compiler
+	local compiler_options=(gcc clang)
+	__choose "Select a compiler:" "${compiler_options[*]}"
+	local compiler=${compiler_options[$?]}
 
 	if [[ $std_print -eq 0 ]]; then
 		print_love="println(\"I 💖 C++!\")"
