@@ -95,6 +95,18 @@ __choose() {
 	return $current
 }
 
+__find_command() {
+	local base=$1
+
+	compgen -c | egrep "^${base}(-[0-9]+)$" | sort -Vr | while read cmd; do
+		if command -v "$cmd" &>/dev/null; then
+			echo "$cmd"
+			return 0
+		fi
+	done
+	return 1
+}
+
 __mk_cpp_project() {
 	local name=${1}
 
@@ -122,9 +134,21 @@ __mk_cpp_project() {
 	fi
 
 	# Select compiler
-	local compiler_options=(gcc clang)
-	__choose "Select a compiler:" "${compiler_options[*]}"
-	local compiler=${compiler_options[$?]}
+	local compiler=
+	local GCC=$(__find_command "g\\+\\+")
+	local CLANG=$(__find_command "clang\\+\\+")
+	if [[ $GCC && $CLANG ]]; then
+		local compiler_options=($GCC $CLANG)
+		__choose "Select a compiler:" "${compiler_options[*]}"
+		compiler=${compiler_options[$?]}
+	elif [[ $GCC ]]; then
+		compiler=$GCC
+	elif [[ $CLANG ]]; then
+		compiler=$CLANG
+	else
+		compiler="g++"
+		echo -e "  [31mWarning:0;2mC++ compiler not found!0m"
+	fi
 
 	if [[ $std_print -eq 0 ]]; then
 		print_love="println(\"I 💖 C++!\")"
