@@ -114,8 +114,12 @@ __mk_cpp_project() {
 	local print_love="cout << \"I 💖 C++!\n\""
 	local include="iostream"
 
+	local using_namespace=
+
 	__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
-	local use_std=$?
+	if [[ $? -eq 0 ]]; then
+		using_namespace="using namespace std;"
+	fi
 
 	# Select compiler
 	local compiler_options=(gcc clang)
@@ -140,6 +144,15 @@ __mk_cpp_project() {
 	cat > "${name}.cpp" <<END
 // ${name}.cpp
 #include <${include}>
+END
+	
+	if [[ $using_namespace ]]; then
+		cat >> "${name}.cpp" <<END
+${using_namespace}
+END
+	fi
+
+	cat >> "${name}.cpp" <<END
 
 ${fun_sign} {
 
@@ -156,7 +169,7 @@ OUT = ${name}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@g++-14 -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@${compiler} -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
