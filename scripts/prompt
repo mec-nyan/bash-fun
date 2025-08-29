@@ -1,0 +1,30 @@
+# vim:ft=sh
+
+function gitStatus() {
+	local modified=0
+	local deleted=0
+	local renamed=0
+	local untracked=0
+
+	# For now, only show changes in working tree.
+	status=($(git status --porcelain 2>/dev/null | awk '{print substr($0, 2, 2)}'))
+	for s in ${status[@]}; do
+		case ${s} in
+		'M' | 'T') ((modified++)) ;;
+		'D') ((deleted++)) ;;
+		'R' | 'C') ((renamed++)) ;;
+		'?') ((untracked++)) ;;
+		*) ;;
+		esac
+	done
+
+	printf " "
+	[[ $modified -gt 0 ]] && printf "%dM " $modified
+	[[ $renamed -gt 0 ]] && printf "%dR " $renamed
+	[[ $deleted -gt 0 ]] && printf "%dD " $deleted
+	[[ $untracked -gt 0 ]] && printf "%dU " $untracked
+}
+
+PS1='\[\033[00;34m\]╭─Nano 🌸 $(path-trimmer $(pwd)) \[\033[32m\]  $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \[\033[33m\][\[\033[00;31m\]$(gitStatus)\[\033[00;33m\]]\n\[\033[00;34m\]╰─\$\[\033[00;39m\] '
+
+PS2='  \[\033[33m\]... \[\033[39m\]'
