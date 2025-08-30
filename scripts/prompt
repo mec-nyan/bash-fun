@@ -19,10 +19,10 @@ function gitStatus() {
 	done
 
 	printf " "
-	[[ $modified -gt 0 ]] && printf "%d+ " $modified
-	[[ $renamed -gt 0 ]] && printf "%dr " $renamed
-	[[ $deleted -gt 0 ]] && printf "%d- " $deleted
-	[[ $untracked -gt 0 ]] && printf "%d? " $untracked
+	[[ $modified -gt 0 ]] && printf " %d " $modified
+	[[ $renamed -gt 0 ]] && printf " %d " $renamed
+	[[ $deleted -gt 0 ]] && printf "󰆴 %d " $deleted
+	[[ $untracked -gt 0 ]] && printf " %d " $untracked
 }
 
 function colour() {
@@ -33,11 +33,17 @@ function colour() {
 	fi
 }
 
+function git_info() {
+	local branch=$(git branch --show-current 2> /dev/null)
+	if [[ -n $branch ]]; then
+		printf "$(colour 203) $(colour 2) $branch$(colour 3) [$(colour 1)$(gitStatus)$(colour 3)]"
+	fi
+}
 
-PS1='$(colour 4)╭─Nano:  $(path-trimmer $(pwd)) \
-$(colour 203) \
-$(colour 2) $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \
-$(colour 3)[$(colour 1)$(gitStatus)$(colour 3)]\
+# TODO: Fix how the size is calculated by bash
+
+PS1='$(colour 4)╭─nano:  $(path-trimmer $(pwd)) \
+$(git_info)\
 \n$(colour 4)╰─\$$(colour 9) '
 
 PS2='  $(colour 3)... $(colour 9)'
