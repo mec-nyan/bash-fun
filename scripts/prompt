@@ -19,19 +19,24 @@ function gitStatus() {
 	done
 
 	printf " "
-	[[ $modified -gt 0 ]] && printf "%dM " $modified
-	[[ $renamed -gt 0 ]] && printf "%dR " $renamed
-	[[ $deleted -gt 0 ]] && printf "%dD " $deleted
-	[[ $untracked -gt 0 ]] && printf "%dU " $untracked
+	[[ $modified -gt 0 ]] && printf "%d+ " $modified
+	[[ $renamed -gt 0 ]] && printf "%dr " $renamed
+	[[ $deleted -gt 0 ]] && printf "%d- " $deleted
+	[[ $untracked -gt 0 ]] && printf "%d? " $untracked
 }
 
 function colour() {
-	printf "\033[00;3%dm" $1
+	if [[ $1 -lt 10 ]]; then
+		printf "\033[00;3%dm" $1
+	else
+		printf "\033[00;38:5:%dm" $1
+	fi
 }
 
 
-PS1='$(colour 5)╭─Nano 🌸 $(path-trimmer $(pwd)) \
-$(colour 2)  $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \
+PS1='$(colour 4)╭─Nano:  $(path-trimmer $(pwd)) \
+$(colour 203) \
+$(colour 2) $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \
 $(colour 3)[$(colour 1)$(gitStatus)$(colour 3)]\
 \n$(colour 4)╰─\$$(colour 9) '
 
