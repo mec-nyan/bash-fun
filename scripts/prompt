@@ -38,14 +38,14 @@ function colour() {
 function git_info() {
 	local branch=$(git branch --show-current 2> /dev/null)
 	if [[ -n $branch ]]; then
-		printf "$(colour 203) $(colour 2) $branch$(colour 3) [$(colour 1)$(gitStatus)$(colour 3)]"
+		printf "$(colour 203)  $(colour 135) $branch$(colour 2) {$(colour 204)$(gitStatus)$(colour 2)}"
 	fi
 }
 
 # TODO: Fix how the size is calculated by bash
 
-PS1='$(colour 4)╭─nano:  $(path-trimmer $(pwd)) \
-$(git_info)\
-\n$(colour 4)╰─\$$(colour 9) '
+PS1='$(colour 2)╭─nano $(colour 4)  $(path-trimmer $(pwd)) \
+$(git_info) $(colour 204) \
+\n$(colour 2)╰─\$$(colour 9) '
 
 PS2='  $(colour 3)... $(colour 9)'
