@@ -18,6 +18,8 @@ function gitStatus() {
 		esac
 	done
 
+	if ((modified == 0 && deleted == 0 && renamed == 0 && untracked == 0)); then return; fi
+
 	printf " "
 	[[ $modified -gt 0 ]] && printf " %d " $modified
 	[[ $renamed -gt 0 ]] && printf " %d " $renamed
