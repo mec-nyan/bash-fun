@@ -1,51 +1,69 @@
 # vim:ft=sh
 
+function colour() {
+	if [[ $1 -lt 10 ]]; then
+		printf "%s[00;3%dm" '\033' $1
+	else
+		printf "%s[00;38:5:%dm" '\033' $1
+	fi
+}
+
+function esc() {
+	printf "%s${1}%s" '\[' '\]'
+}
+
+c1=$(esc $(colour 1))
+c2=$(esc $(colour 2))
+c3=$(esc $(colour 3))
+c4=$(esc $(colour 4))
+c5=$(esc $(colour 5))
+c6=$(esc $(colour 6))
+c7=$(esc $(colour 7))
+c8=$(esc $(colour 8))
+c9=$(esc $(colour 9))
+c135=$(esc $(colour 135))
+c203=$(esc $(colour 203))
+c204=$(esc $(colour 204))
+
 function gitStatus() {
 	local modified=0
 	local deleted=0
 	local renamed=0
 	local untracked=0
 
-	# For now, only show changes in working tree.
-	status=($(git status --porcelain 2>/dev/null | awk '{print substr($0, 2, 2)}'))
-	for s in ${status[@]}; do
-		case ${s} in
-		'M' | 'T') ((modified++)) ;;
-		'D') ((deleted++)) ;;
-		'R' | 'C') ((renamed++)) ;;
-		'?') ((untracked++)) ;;
-		*) ;;
-		esac
-	done
+	while IFS= read -r line; do
+		x=${line:0:1}
+		y=${line:1:2}
+
+		for c in "$x" "$y"; do
+			case "$c" in
+				'M' | 'T') ((modified++)) ;;
+				'D') ((deleted++)) ;;
+				'R' | 'C') ((renamed++)) ;;
+				'?') ((untracked++)) ;;
+				*) ;;
+			esac
+		done
+	done < <(git status --porcelain 2>/dev/null)
 
 	if ((modified == 0 && deleted == 0 && renamed == 0 && untracked == 0)); then return; fi
 
 	printf " "
-	[[ $modified -gt 0 ]] && printf " %d " $modified
-	[[ $renamed -gt 0 ]] && printf " %d " $renamed
-	[[ $deleted -gt 0 ]] && printf "󰆴 %d " $deleted
-	[[ $untracked -gt 0 ]] && printf " %d " $untracked
-}
-
-function colour() {
-	if [[ $1 -lt 10 ]]; then
-		printf "\033[00;3%dm" $1
-	else
-		printf "\033[00;38:5:%dm" $1
-	fi
+	[[ $modified -gt 0 ]] && printf "$(colour 2) %d " $modified
+	[[ $renamed -gt 0 ]] && printf "$(colour 4) %d " $renamed
+	[[ $deleted -gt 0 ]] && printf "$(colour 1) %d " $deleted
+	[[ $untracked -gt 0 ]] && printf "$(colour 245) %d " $untracked
 }
 
 function git_info() {
 	local branch=$(git branch --show-current 2> /dev/null)
 	if [[ -n $branch ]]; then
-		printf "$(colour 203)  $(colour 135) $branch$(colour 2) {$(colour 204)$(gitStatus)$(colour 2)}"
+		printf "$(colour 203)  $(colour 135) $branch$(colour 2) {$(gitStatus)$(colour 2)}"
 	fi
 }
 
-# TODO: Fix how the size is calculated by bash
+PS1="${c2}╭─nano ${c4}  \$(path-trimmer $(pwd)) \
+\$(git_info) ${c204} \
+\n${c2}╰─\$${c9} "
 
-PS1='$(colour 2)╭─nano $(colour 4)  $(path-trimmer $(pwd)) \
-$(git_info) $(colour 204) \
-\n$(colour 2)╰─\$$(colour 9) '
-
-PS2='  $(colour 3)... $(colour 9)'
+PS2="  ${c3}... ${c9}"
