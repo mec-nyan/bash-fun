@@ -25,6 +25,14 @@ function gitStatus() {
 	[[ $untracked -gt 0 ]] && printf "%dU " $untracked
 }
 
-PS1='\[\033[00;34m\]╭─Nano 🌸 $(path-trimmer $(pwd)) \[\033[32m\]  $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \[\033[33m\][\[\033[00;31m\]$(gitStatus)\[\033[00;33m\]]\n\[\033[00;34m\]╰─\$\[\033[00;39m\] '
+function colour() {
+	printf "\033[00;3%dm" $1
+}
 
-PS2='  \[\033[33m\]... \[\033[39m\]'
+
+PS1='$(colour 5)╭─Nano 🌸 $(path-trimmer $(pwd)) \
+$(colour 2)  $(git branch --show-current 2> /dev/null | sed -e "s/\(.\{4,10\}\).*/\1~/") \
+$(colour 3)[$(colour 1)$(gitStatus)$(colour 3)]\
+\n$(colour 4)╰─\$$(colour 9) '
+
+PS2='  $(colour 3)... $(colour 9)'
