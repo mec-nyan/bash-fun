@@ -32,14 +32,14 @@ function gitStatus() {
 	local untracked=0
 
 	while IFS= read -r line; do
-		x=${line:0:1}
-		y=${line:1:2}
+		x="${line:0:1}"
+		y="${line:1:1}"
 
 		for c in "$x" "$y"; do
 			case "$c" in
-				'M' | 'T') ((modified++)) ;;
+				'M'|'T') ((modified++)) ;;
 				'D') ((deleted++)) ;;
-				'R' | 'C') ((renamed++)) ;;
+				'R'|'C') ((renamed++)) ;;
 				'?') ((untracked++)) ;;
 				*) ;;
 			esac
