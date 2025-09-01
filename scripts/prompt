@@ -62,7 +62,7 @@ function git_info() {
 	fi
 }
 
-PS1="${c2}╭─nano ${c4}  \$(path-trimmer $(pwd)) \
+PS1="${c2}╭─nano ${c4}  \$(path-trimmer \$(pwd)) \
 \$(git_info) ${c204} \
 \n${c2}╰─\$${c9} "
 
