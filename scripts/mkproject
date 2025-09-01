@@ -1,9 +1,52 @@
 # vim: ft=bash
 
+__code() {
+	out='['
+	while [[ $# -gt 0 ]]; do
+		out+=${1}
+		if [[ $# -gt 1 ]]; then
+			out+=";"
+		fi
+		shift
+	done
+	out+="m"
+
+	printf "%s" "$out"
+}
+
+NORMAL=0
+BOLD=1
+DIM=2
+ITALIC=3
+UNDERLINE=4
+
+BLACK=30
+RED=31
+GREEN=32
+YELLOW=33
+BLUE=34
+PINK=35
+CYAN=36
+GREY=37
+WHITE=38
+
 __a_fruit() {
 	local fruits=(🍒 🍑 🍌 🍎 🍏 🍇 🍊 🍍 🥝 🍉 🍈 🍋 🍐 🍓)
 	local index=$(( RANDOM % ${#fruits[@]} ))
 	echo "${fruits[$index]}"
+}
+
+__log() {
+	local level=$2
+	case $level in
+		info)
+			printf "%s  %s${1}%s\n" "$(__code $BLUE)" "$(__code $ITALIC $GREEN)" "$(__code $NORMAL)"
+			;;
+		# For now, default to warning
+		warning|*)
+			printf "%s  %s${1}%s\n" "$(__code $YELLOW)" "$(__code $ITALIC $RED)" "$(__code $NORMAL)"
+			;;
+	esac
 }
 
 # TODO: We may need a function that allows to select between multiple options.
@@ -110,6 +153,8 @@ __find_command() {
 __mk_cpp_project() {
 	local name=${1}
 
+	__log "Making project ${name}." "info"
+
 	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
 	local trailing_ret=$?
 
@@ -134,20 +179,46 @@ __mk_cpp_project() {
 	fi
 
 	# Select compiler
-	local compiler=
+	# If not compiler is found, default to g++ and print warning
+	local compiler="g++"
+
 	local GCC=$(__find_command "g\\+\\+")
 	local CLANG=$(__find_command "clang\\+\\+")
-	if [[ $GCC && $CLANG ]]; then
+
+	if [[ -n $GCC && -n $CLANG ]]; then
 		local compiler_options=($GCC $CLANG)
 		__choose "Select a compiler:" "${compiler_options[*]}"
 		compiler=${compiler_options[$?]}
-	elif [[ $GCC ]]; then
+	elif [[ -n $GCC ]]; then
 		compiler=$GCC
-	elif [[ $CLANG ]]; then
+	elif [[ -n $CLANG ]]; then
 		compiler=$CLANG
 	else
-		compiler="g++"
-		echo -e "  [31mWarning:0;2mC++ compiler not found!0m"
+		__log "Compiler not found." "info"
+	fi
+
+	# Select build system
+	local build_system="make"
+
+	declare -a build_opts
+
+	if type make &>/dev/null; then 
+		build_opts[${#build_opts[*]}]="make"
+	fi
+
+	if type cmake &>/dev/null; then 
+		build_opts[${#build_opts[*]}]="cmake"
+	fi
+
+	if type meson &>/dev/null; then 
+		build_opts[${#build_opts[*]}]="meson"
+	fi
+
+	if [[ ${#build_opts} -gt 0 ]]; then
+		__choose "Select your build system:" "${build_opts[*]}"
+		build_system=${build_opts[$?]}
+	else
+		__log "Build system not found." "warning"
 	fi
 
 	if [[ $std_print -eq 0 ]]; then
@@ -187,7 +258,9 @@ ${fun_sign} {
 }
 END
 
-	cat > Makefile <<END
+	case $build_system in
+		make)
+			cat > Makefile <<END
 IN = ${name}.cpp
 OUT = ${name}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
@@ -201,6 +274,25 @@ run: \$(OUT)
 clean:
 	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
+			;;
+		cmake)
+			cat > CMakeLists.txt <<END
+cmake_minimum_required(VERSION 3.10)
+project(${name} VERSION 0.1.0)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_COMPILER $(which ${compiler}))
+add_executable(${name} ${name}.cpp)
+END
+			mkdir build
+			;;
+		meson)
+			__log "Meson support: WIP" "info"
+			;;
+		*)
+			__log "No build system selected." "info"
+			;;
+	esac
 }
 
 __mk_c_project() {
