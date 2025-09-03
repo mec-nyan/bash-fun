@@ -157,22 +157,28 @@ __mk_cpp_project() {
 
 	__log "Making project ${name}." "info"
 
-	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
-	local trailing_ret=$?
+	# Function style
+	local fun_sign="int main()"
 
-	local fun_sign=
-	if [[ $trailing_ret -eq 0 ]]; then
+	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
+
+	if [[ $? -eq 0 ]]; then
 		fun_sign="auto main() -> int"
-	else
-		fun_sign="int main()"
 	fi
+
+	# Use "iostream" or "print"
+	local print_love="cout << \"I 💖 C++!\n\""
+	local include="iostream"
 
 	__ask_yes_or_no "Use std::print?" "no" "Use std::cout"
 	local std_print=$?
 
-	local print_love="cout << \"I 💖 C++!\n\""
-	local include="iostream"
+	if [[ $std_print -eq 0 ]]; then
+		print_love="println(\"I 💖 C++!\")"
+		include="print"
+	fi
 
+	# Use "using namespace std;"
 	local using_namespace=
 
 	__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
@@ -223,20 +229,27 @@ __mk_cpp_project() {
 		__log "Build system not found." "warning"
 	fi
 
-	# Add test files
-	# For now just with 'make'
-	# TODO: Add tests with 'cmake'
-	local add_tests=false
+	# Single file?
+	local single_file=false
 
-	__ask_yes_or_no "Add test file?" "no" "Don't add tests"
+	__ask_yes_or_no "Create a single file project?" "no" "Entry point is main.cpp"
+
 	if [[ $? -eq 0 ]]; then
-		add_tests=true
+		single_file=true
 	fi
 
-	if [[ $std_print -eq 0 ]]; then
-		print_love="println(\"I 💖 C++!\")"
-		local include="print"
+	# Add test files
+	local add_tests=false
+	if [[ ! ${single_file} ]]; then
+		add_tests=true
+
+		__ask_yes_or_no "Add tests?" "yes" "Adding tests folder"
+		if [[ $? -eq 0 ]]; then
+			add_tests=false
+		fi
 	fi
+
+	# Let's get to work!
 
 	if ! mkdir "${name}"; then
 		echo "Couldn't create directory ${name}."
@@ -259,7 +272,7 @@ __mk_cpp_project() {
 			echo "Failed to create test directory."
 		fi
 
-		if [[ -e ${test_file} ]]; then
+		if [[ -e ${test_dir}/${test_file} ]]; then
 			cat > "tests/test_${name}.cpp" <<END
 #define CATCH_CONFI_MAIN
 #include <catch2/catch.hpp>
@@ -275,18 +288,30 @@ END
 	fi
 
 	# Make main cpp file
-	cat > "${name}.cpp" <<END
-// ${name}.cpp
+	local main="main"
+	if [[ ${single_file} ]]; then
+		main=${name}
+	fi
+
+	cat > "${main}.cpp" <<END
+// ${main}.cpp
 #include <${include}>
 END
 	
 	if [[ $using_namespace ]]; then
-		cat >> "${name}.cpp" <<END
+		cat >> "${main}.cpp" <<END
 ${using_namespace}
-END
-	fi
 
-	cat >> "${name}.cpp" <<END
+${fun_sign} {
+
+	${print_love};
+
+	return 0;
+
+}
+END
+	else
+		cat >> "${main}.cpp" <<END
 
 ${fun_sign} {
 
@@ -296,7 +321,9 @@ ${fun_sign} {
 
 }
 END
+	fi
 
+	# Build commands (make, cmake, meson)
 	case $build_system in
 		make)
 			cat > Makefile <<END
@@ -313,13 +340,14 @@ run: \$(OUT)
 clean:
 	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
+			# Tests anyone?
 			if [[ $add_tests ]]; then
 				cat >> Makefile <<END
-	@if [ -e ./tests/test_${name}.cpp ]; then rm ./tests/test_${name}.cpp; fi
+	@if [ -e ./${test_dir}/test ]; then rm ./${test_dir}/test; fi
 
 test:
-	@${compiler} -o tests/test \$(COMPILER_FLAGS) tests/test_${name}.cpp
-	@./tests/test_${name}.cpp
+	@${compiler} -o ${test_dir}/test \$(COMPILER_FLAGS) ${test_dir}/${test_file}
+	@./tests/test
 END
 			fi
 			;;
@@ -333,6 +361,7 @@ set(CMAKE_CXX_COMPILER $(which ${compiler}))
 add_executable(${name} ${name}.cpp)
 END
 			mkdir build
+			# TODO: Add test commands in CMakeLists.txt
 			;;
 		meson)
 			__log "Meson support: WIP" "info"
