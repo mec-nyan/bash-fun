@@ -221,6 +221,16 @@ __mk_cpp_project() {
 		__log "Build system not found." "warning"
 	fi
 
+	# Add test files
+	# For now just with 'make'
+	# TODO: Add tests with 'cmake'
+	local add_tests=false
+
+	__ask_yes_or_no "Add test file?" "no" "Don't add tests"
+	if [[ $? -eq 0 ]]; then
+		add_tests=true
+	fi
+
 	if [[ $std_print -eq 0 ]]; then
 		print_love="println(\"I 💖 C++!\")"
 		local include="print"
@@ -234,6 +244,21 @@ __mk_cpp_project() {
 	if ! cd "${name}"; then
 		echo "Couldn't cd into ${name}."
 		return 1
+	fi
+
+	# TODO: Check for success
+	# TODO: Improve template
+	if [[ $add_tests ]]; then
+		mkdir tests
+		touch tests/test_${name}.cpp
+		cat > "tests/test_${name}.cpp" <<END
+#define CATCH_CONFI_MAIN
+#include <catch2/catch.hpp>
+
+TEST_CASE() {
+    REQUIRE();
+}
+END
 	fi
 
 	cat > "${name}.cpp" <<END
@@ -274,6 +299,15 @@ run: \$(OUT)
 clean:
 	@if [ -e ./\$(OUT) ]; then rm ./\$(OUT); fi
 END
+			if [[ $add_tests ]]; then
+				cat >> Makefile <<END
+	@if [ -e ./tests/test_${name}.cpp ]; then rm ./tests/test_${name}.cpp; fi
+
+test:
+	@${compiler} -o tests/test \$(COMPILER_FLAGS) tests/test_${name}.cpp
+	@./tests/test_${name}.cpp
+END
+			fi
 			;;
 		cmake)
 			cat > CMakeLists.txt <<END
