@@ -238,13 +238,27 @@ __mk_cpp_project() {
 		single_file=true
 	fi
 
+	local header_file=false
+	local impl_file=false
+
+	if [[ ${single_file} == false ]]; then
+		__ask_yes_or_no "- Do you want a header file?" "no" "Just main.cpp"
+		if [[ $? -eq 0 ]]; then
+			header_file=true
+			__ask_yes_or_no "- Do you want an impl file?" "no" "Header only"
+			if [[ $? -eq 0 ]]; then
+				impl_file=true
+			fi
+		fi
+	fi
+
 	# Add test files
 	local add_tests=false
-	if [[ ! ${single_file} ]]; then
+	if [[ ${single_file} == false ]]; then
 		add_tests=true
 
 		__ask_yes_or_no "Add tests?" "yes" "Adding tests folder"
-		if [[ $? -eq 0 ]]; then
+		if [[ $? -ne 0 ]]; then
 			add_tests=false
 		fi
 	fi
@@ -289,7 +303,7 @@ END
 
 	# Make main cpp file
 	local main="main"
-	if [[ ${single_file} ]]; then
+	if [[ ${single_file} == true ]]; then
 		main=${name}
 	fi
 
@@ -321,6 +335,33 @@ ${fun_sign} {
 
 }
 END
+	fi
+
+	# Headers (optional)
+	# TODO: A lot (or maybe not).
+	# - Trailing return?
+	# - Example function? (i.e. "add_two(uint a, uint b) -> uint...")
+	# - Place that example in the test file?
+	# The user may have to remove all of that, so...
+	# Maybe just "touch file.hpp file.cpp" is enough
+	if [[ ${header_file} == true ]]; then
+		if [[ ${impl_file} == true ]]; then
+			cat > ${name}.cpp <<END
+#include "${name}.hpp"
+
+auto ${name}() {}
+END
+			cat > ${name}.hpp <<END
+
+auto ${name}();
+END
+		else
+			cat > ${name}.hpp <<END
+
+inline auto ${name}();
+END
+
+		fi
 	fi
 
 	# Build commands (make, cmake, meson)
