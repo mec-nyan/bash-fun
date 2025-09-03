@@ -1,19 +1,5 @@
 # vim: ft=bash
 
-__code() {
-	out='['
-	while [[ $# -gt 0 ]]; do
-		out+=${1}
-		if [[ $# -gt 1 ]]; then
-			out+=";"
-		fi
-		shift
-	done
-	out+="m"
-
-	printf "%s" "$out"
-}
-
 NORMAL=0
 BOLD=1
 DIM=2
@@ -29,6 +15,22 @@ PINK=35
 CYAN=36
 GREY=37
 WHITE=38
+DEFAULT=39
+
+
+__code() {
+	out='['
+	while [[ $# -gt 0 ]]; do
+		out+=${1}
+		if [[ $# -gt 1 ]]; then
+			out+=";"
+		fi
+		shift
+	done
+	out+="m"
+
+	printf "%s" "$out"
+}
 
 __a_fruit() {
 	local fruits=(🍒 🍑 🍌 🍎 🍏 🍇 🍊 🍍 🥝 🍉 🍈 🍋 🍐 🍓)
@@ -246,21 +248,33 @@ __mk_cpp_project() {
 		return 1
 	fi
 
-	# TODO: Check for success
-	# TODO: Improve template
+	# Make test directory and test template
 	if [[ $add_tests ]]; then
-		mkdir tests
-		touch tests/test_${name}.cpp
-		cat > "tests/test_${name}.cpp" <<END
+		test_dir="tests"
+		test_file="test_${name}.cpp"
+
+		if mkdir tests &>/dev/null; then
+			touch "${test_dir}/${test_file}" &>/dev/null
+		else
+			echo "Failed to create test directory."
+		fi
+
+		if [[ -e ${test_file} ]]; then
+			cat > "tests/test_${name}.cpp" <<END
 #define CATCH_CONFI_MAIN
 #include <catch2/catch.hpp>
 
+// Add your test cases here.
 TEST_CASE() {
     REQUIRE();
 }
 END
+		else
+			echo "Failed to create test template."
+		fi
 	fi
 
+	# Make main cpp file
 	cat > "${name}.cpp" <<END
 // ${name}.cpp
 #include <${include}>
