@@ -10,6 +10,8 @@ Port of 'mkproject' (Bash).
 
 import random
 import sys
+import termios
+import tty
 
 
 NORMAL = 0
@@ -63,3 +65,50 @@ def log_me(message: str, level: str) -> None:
                 f"{ansify([YELLOW])} {ansify([ITALIC, RED])}{message}"
             )
     sys.stdout.write(f"{ansify([NORMAL])}\n")
+
+
+def get_ch() -> str:
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    return ch
+
+
+def ask_yes_or_no(prompt: str, message: str, default: str = "no") -> bool:
+    fruit = fruit_me()
+
+    sys.stdout.write(f"{fruit} {prompt} (y/n) (default: {default}) ")
+
+    tries = 0
+
+    while True:
+        tries += 1
+
+        answer = get_ch()
+
+        if answer == "\n":
+            sys.stdout.write(
+                f"    {ansify([GREEN])}{message}{ansify([NORMAL])}")
+            match default.lower():
+                case "y" | "yes":
+                    return True
+                case "n" | "no":
+                    return False
+                case _:
+                    return False
+        elif answer == "y":
+            return True
+        elif answer == "n":
+            return False
+        else:
+            sys.stdout.write("\ny/n? ")
+
+        if tries == 3:
+            sys.stdout.write(f"{ansify([DIM, YELLOW])}Fuck it!"
+                             f"Falling back to defaults.\n{ansify([NORMAL])}")
