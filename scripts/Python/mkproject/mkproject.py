@@ -49,8 +49,7 @@ def ansify(codes: list[int]) -> str:
 
 
 def fruit_me() -> str:
-    fruits = ["🍒" "🍑" "🍌" "🍎" "🍏" "🍇" "🍊" "🍍" "🥝" "🍉" "🍈" "🍋" "🍐" "🍓"
-              ]
+    fruits = ["🍒", "🍑", "🍌", "🍎," "🍏", "🍇", "🍊", "🍍," "🥝," "🍉", "🍈", "🍋", "🍐", "🍓" ]
     return random.choice(fruits)
 
 
@@ -81,7 +80,8 @@ def get_ch() -> str:
 
 
 def ask_yes_or_no(prompt: str, message: str, default: str = "no") -> bool:
-    fruit = fruit_me()
+    # fruit = fruit_me()
+    fruit = ">>"
 
     sys.stdout.write(f"{fruit} {prompt} (y/n) (default: {default}) ")
 
@@ -112,3 +112,11 @@ def ask_yes_or_no(prompt: str, message: str, default: str = "no") -> bool:
         if tries == 3:
             sys.stdout.write(f"{ansify([DIM, YELLOW])}Fuck it!"
                              f"Falling back to defaults.\n{ansify([NORMAL])}")
+
+
+if __name__ == "__main__":
+    answer = ask_yes_or_no("Answer y or n", "yes", "Yes is the default")
+    if answer:
+        print("You said yes!")
+    else:
+        print("You said no")
