@@ -2,13 +2,18 @@
 '''test_mkproject.py'''
 
 import unittest
-import mkproject as mkp
+from mkproject import ansify
 
 
 class TestFunc(unittest.TestCase):
 
     def test_ansify(self):
-        text_styles = [0, 1, 2, 3, 4, 5]
+        for style in range(9):
+            for colour in range(30, 40):
+                want = f"[{style};{colour}m"
+                got = ansify([style, colour])
+
+                self.assertEqual(want, got)
 
 
 if __name__ == "__main__":
