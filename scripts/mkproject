@@ -288,7 +288,7 @@ __mk_cpp_project() {
 
 		if [[ -e ${test_dir}/${test_file} ]]; then
 			cat > "tests/test_${name}.cpp" <<END
-#define CATCH_CONFI_MAIN
+#define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
 // Add your test cases here.
