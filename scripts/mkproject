@@ -344,19 +344,26 @@ END
 	# - Place that example in the test file?
 	# The user may have to remove all of that, so...
 	# Maybe just "touch file.hpp file.cpp" is enough
+	local header_name=
+	local impl_name=
 	if [[ ${header_file} == true ]]; then
+		header_name="${name}.hpp"
+
 		if [[ ${impl_file} == true ]]; then
-			cat > ${name}.cpp <<END
-#include "${name}.hpp"
+			impl_name="${name}.cpp"
+
+			cat > ${impl_name} <<END
+#include "${header_name}"
 
 auto ${name}() {}
 END
-			cat > ${name}.hpp <<END
+			cat > ${header_name} <<END
 
 auto ${name}();
 END
 		else
-			cat > ${name}.hpp <<END
+			# Header only.
+			cat > ${header_name} <<END
 
 inline auto ${name}();
 END
@@ -368,12 +375,12 @@ END
 	case $build_system in
 		make)
 			cat > Makefile <<END
-IN = ${name}.cpp
-OUT = ${name}.o
+IN = ${main}.cpp
+OUT = ${main}.o
 COMPILER_FLAGS = -std=c++23 -Wall -Werror -Wpedantic
 
 \$(OUT): \$(IN)
-	@${compiler} -o \$(OUT) \$(COMPILER_FLAGS) \$(IN)
+	@${compiler} -o \$(OUT) \$(COMPILER_FLAGS) \$(IN) ${impl_name}
 
 run: \$(OUT)
 	@if [ -e ./\$(OUT) ]; then ./\$(OUT); fi
@@ -387,7 +394,7 @@ END
 	@if [ -e ./${test_dir}/test ]; then rm ./${test_dir}/test; fi
 
 test:
-	@${compiler} -o ${test_dir}/test \$(COMPILER_FLAGS) ${test_dir}/${test_file}
+	@${compiler} -o ${test_dir}/test \$(COMPILER_FLAGS) ${test_dir}/${test_file} ${impl_name}
 	@./tests/test
 END
 			fi
