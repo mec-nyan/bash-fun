@@ -184,6 +184,8 @@ __mk_cpp_project() {
 	__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
 	if [[ $? -eq 0 ]]; then
 		using_namespace="using namespace std;"
+	else
+		print_love="std::${print_love}"
 	fi
 
 	# Select compiler
@@ -315,6 +317,10 @@ END
 	if [[ $using_namespace ]]; then
 		cat >> "${main}.cpp" <<END
 ${using_namespace}
+END
+	fi
+
+	cat >> "${main}.cpp" <<END
 
 ${fun_sign} {
 
@@ -324,18 +330,6 @@ ${fun_sign} {
 
 }
 END
-	else
-		cat >> "${main}.cpp" <<END
-
-${fun_sign} {
-
-	std::${print_love};
-
-	return 0;
-
-}
-END
-	fi
 
 	# Headers (optional)
 	# TODO: A lot (or maybe not).
