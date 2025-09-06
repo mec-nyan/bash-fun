@@ -57,13 +57,16 @@ __ask_yes_or_no() {
 	local prompt="${1}"
 	local default="${2:-no}"
 	local default_msg="${3:-Using default option.}"
+	local alt_msg="${4:-The other way around.}"
 	local is_yes=
 	local fruit=$(__a_fruit)
+	local MAX_TRIES=3
 
 	printf "%s %s (y/n) (default: %s) " "${fruit}" "${prompt}" "${default}"
 
 	local tries=0
 	while read -p "> " -n 1 is_yes; do
+		# <Enter> selects the default option
 		if [[ -z ${is_yes} ]]; then
 			case "${default}" in
 				y|yes|Y|Yes|YES)
@@ -71,16 +74,18 @@ __ask_yes_or_no() {
 				*)
 					is_yes=n;;
 			esac
-			printf "   [2m%s[0m" "${default_msg}"
+			# printf "   [2m%s[0m" "${default_msg}"
 			break
 		fi
 
+		# The user pressed 'y' or 'n'
 		if [[ ${is_yes} =~ y|n ]]; then
 			break
 		fi
 
+		# Any other key, give her another try
 		let tries+=1
-		if [[ $tries -eq 3 ]]; then
+		if [[ $tries -eq $MAX_TRIES ]]; then
 			printf "\n   [2;3mFuck it! Falling back to defaults.[0m 😑"
 			break
 		fi
@@ -88,7 +93,11 @@ __ask_yes_or_no() {
 		printf "\n[32m-> [0;3my or n?[0m "
 	done
 
-	echo
+	if [[ ("$defalt" =~ y|yes|Y|Yes|Yes && "$is_yes" == y) || ("$default" =~ n|no|N|No|NO && "$is_yes" == n) ]]; then
+		printf "   [2m%s[0m" "${default_msg}"
+	else
+		printf "   [2m%s[0m" "${alt_msg}"
+	fi
 
 	# 'y' returns 0, otherwise 1.
 	[[ ${is_yes} == 'y' ]]
@@ -158,7 +167,7 @@ __mk_cpp_project() {
 	__log "Making project ${name}." "info"
 
 	local executable=false
-	__ask_yes_or_no "Create main app?" "yes" "Library only."
+	__ask_yes_or_no "Create main app?" "yes" "Project type: Application"
 	if [[ $? -eq 0 ]]; then
 		executable=true
 	fi
@@ -309,7 +318,7 @@ END
 	fi
 
 	# Make main cpp file
-	if [[ $executable　== true ]]; then
+	if [[ $executable == true ]]; then
 		local main="main"
 		if [[ ${single_file} == true ]]; then
 			main=${name}
