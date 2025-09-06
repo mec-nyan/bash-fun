@@ -157,35 +157,74 @@ __mk_cpp_project() {
 
 	__log "Making project ${name}." "info"
 
-	# Function style
-	local fun_sign="int main()"
-
-	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
-
+	local executable=false
+	__ask_yes_or_no "Create main app?" "yes" "Library only."
 	if [[ $? -eq 0 ]]; then
-		fun_sign="auto main() -> int"
+		executable=true
+	fi
+
+	local trailing_ret=false
+	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
+	if [[ $? -eq 0 ]]; then
+		trailing_ret=true
 	fi
 
 	# Use "iostream" or "print"
-	local print_love="cout << \"I 💖 C++!\n\""
-	local include="iostream"
+	if [[ $executable == true ]]; then
+		local print_love="cout << \"I 💖 C++!\n\""
+		local include="iostream"
 
-	__ask_yes_or_no "Use std::print?" "no" "Use std::cout"
-	local std_print=$?
+		__ask_yes_or_no "Use std::print?" "no" "Use std::cout"
+		if [[ $? -eq 0 ]]; then
+			print_love="println(\"I 💖 C++!\")"
+			include="print"
+		fi
 
-	if [[ $std_print -eq 0 ]]; then
-		print_love="println(\"I 💖 C++!\")"
-		include="print"
+		# Use "using namespace std;"
+		local using_namespace=
+		__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
+		if [[ $? -eq 0 ]]; then
+			using_namespace="using namespace std;"
+		else
+			print_love="std::${print_love}"
+		fi
 	fi
 
-	# Use "using namespace std;"
-	local using_namespace=
+	# Single file?
+	local single_file=false
+	local header_file=true
+	local impl_file=false
 
-	__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
-	if [[ $? -eq 0 ]]; then
-		using_namespace="using namespace std;"
-	else
-		print_love="std::${print_love}"
+	if [[ $executable == true ]]; then
+		__ask_yes_or_no "Create a single file project?" "no" "Entry point is main.cpp"
+		if [[ $? -eq 0 ]]; then
+			single_file=true
+			header_file=false
+		fi
+	fi
+
+	if [[ ${header_file} == true ]]; then
+		__ask_yes_or_no "- Do you want an impl file?" "no" "Header only"
+		if [[ $? -eq 0 ]]; then
+			impl_file=true
+		fi
+	fi
+
+	# Add test files
+	local add_tests=true
+
+	__ask_yes_or_no "Add tests?" "yes" "Adding tests folder"
+	if [[ $? -ne 0 ]]; then
+		add_tests=false
+	fi
+
+	# Function style
+	local main_func="int main()"
+	local a_func="void ${name}()"
+
+	if [[ $trailing_ret == true ]]; then
+		main_func="auto main() -> int"
+		a_func="auto ${name}()"
 	fi
 
 	# Select compiler
@@ -231,40 +270,6 @@ __mk_cpp_project() {
 		__log "Build system not found." "warning"
 	fi
 
-	# Single file?
-	local single_file=false
-
-	__ask_yes_or_no "Create a single file project?" "no" "Entry point is main.cpp"
-
-	if [[ $? -eq 0 ]]; then
-		single_file=true
-	fi
-
-	local header_file=false
-	local impl_file=false
-
-	if [[ ${single_file} == false ]]; then
-		__ask_yes_or_no "- Do you want a header file?" "no" "Just main.cpp"
-		if [[ $? -eq 0 ]]; then
-			header_file=true
-			__ask_yes_or_no "- Do you want an impl file?" "no" "Header only"
-			if [[ $? -eq 0 ]]; then
-				impl_file=true
-			fi
-		fi
-	fi
-
-	# Add test files
-	local add_tests=false
-	if [[ ${single_file} == false ]]; then
-		add_tests=true
-
-		__ask_yes_or_no "Add tests?" "yes" "Adding tests folder"
-		if [[ $? -ne 0 ]]; then
-			add_tests=false
-		fi
-	fi
-
 	# Let's get to work!
 
 	if ! mkdir "${name}"; then
@@ -278,7 +283,7 @@ __mk_cpp_project() {
 	fi
 
 	# Make test directory and test template
-	if [[ $add_tests ]]; then
+	if [[ $add_tests == true ]]; then
 		test_dir="tests"
 		test_file="test_${name}.cpp"
 
@@ -304,25 +309,26 @@ END
 	fi
 
 	# Make main cpp file
-	local main="main"
-	if [[ ${single_file} == true ]]; then
-		main=${name}
-	fi
+	if [[ $executable　== true ]]; then
+		local main="main"
+		if [[ ${single_file} == true ]]; then
+			main=${name}
+		fi
 
-	cat > "${main}.cpp" <<END
+		cat > "${main}.cpp" <<END
 // ${main}.cpp
 #include <${include}>
 END
 	
-	if [[ $using_namespace ]]; then
-		cat >> "${main}.cpp" <<END
+		if [[ $using_namespace ]]; then
+			cat >> "${main}.cpp" <<END
 ${using_namespace}
 END
-	fi
+		fi
 
-	cat >> "${main}.cpp" <<END
+		cat >> "${main}.cpp" <<END
 
-${fun_sign} {
+${main_func} {
 
 	${print_love};
 
@@ -330,6 +336,7 @@ ${fun_sign} {
 
 }
 END
+	fi
 
 	# Headers (optional)
 	# TODO: A lot (or maybe not).
@@ -349,17 +356,21 @@ END
 			cat > ${impl_name} <<END
 #include "${header_name}"
 
-auto ${name}() {}
+${a_func} {
+
+}
 END
 			cat > ${header_name} <<END
 
-auto ${name}();
+${a_func};
 END
 		else
 			# Header only.
 			cat > ${header_name} <<END
 
-inline auto ${name}();
+inline ${a_func} {
+
+}
 END
 
 		fi
