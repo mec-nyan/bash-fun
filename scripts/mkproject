@@ -74,12 +74,12 @@ __ask_yes_or_no() {
 				*)
 					is_yes=n;;
 			esac
-			# printf "   [2m%s[0m" "${default_msg}"
 			break
 		fi
 
 		# The user pressed 'y' or 'n'
 		if [[ ${is_yes} =~ y|n ]]; then
+			printf "\n"
 			break
 		fi
 
@@ -93,10 +93,10 @@ __ask_yes_or_no() {
 		printf "\n[32m-> [0;3my or n?[0m "
 	done
 
-	if [[ ("$defalt" =~ y|yes|Y|Yes|Yes && "$is_yes" == y) || ("$default" =~ n|no|N|No|NO && "$is_yes" == n) ]]; then
-		printf "   [2m%s[0m" "${default_msg}"
+	if [[ ("$default" =~ y|yes|Y|Yes|Yes && "$is_yes" == y) || ("$default" =~ n|no|N|No|NO && "$is_yes" == n) ]]; then
+		printf "   [2m%s[0m\n" "${default_msg}"
 	else
-		printf "   [2m%s[0m" "${alt_msg}"
+		printf "   [2m%s[0m\n" "${alt_msg}"
 	fi
 
 	# 'y' returns 0, otherwise 1.
@@ -167,13 +167,13 @@ __mk_cpp_project() {
 	__log "Making project ${name}." "info"
 
 	local executable=false
-	__ask_yes_or_no "Create main app?" "yes" "Project type: Application"
+	__ask_yes_or_no "Create main app?" "yes" "Project type: Application" "Project type: Library"
 	if [[ $? -eq 0 ]]; then
 		executable=true
 	fi
 
 	local trailing_ret=false
-	__ask_yes_or_no "Use trailing return?" "no" "Use traditional return."
+	__ask_yes_or_no "Use trailing return?" "no" "Using traditional return." "Using trailing return"
 	if [[ $? -eq 0 ]]; then
 		trailing_ret=true
 	fi
@@ -183,7 +183,7 @@ __mk_cpp_project() {
 		local print_love="cout << \"I 💖 C++!\n\""
 		local include="iostream"
 
-		__ask_yes_or_no "Use std::print?" "no" "Use std::cout"
+		__ask_yes_or_no "Use std::print?" "no" "Using std::cout" "Using std::print"
 		if [[ $? -eq 0 ]]; then
 			print_love="println(\"I 💖 C++!\")"
 			include="print"
@@ -191,7 +191,7 @@ __mk_cpp_project() {
 
 		# Use "using namespace std;"
 		local using_namespace=
-		__ask_yes_or_no "Use namespace std?" "no" "Use qualifed namespace 'std::...'"
+		__ask_yes_or_no "Use namespace std?" "no" "Use qualifed names" "Using namespace std"
 		if [[ $? -eq 0 ]]; then
 			using_namespace="using namespace std;"
 		else
@@ -205,7 +205,7 @@ __mk_cpp_project() {
 	local impl_file=false
 
 	if [[ $executable == true ]]; then
-		__ask_yes_or_no "Create a single file project?" "no" "Entry point is main.cpp"
+		__ask_yes_or_no "Create a single file project?" "no" "Multiple files" "Single file"
 		if [[ $? -eq 0 ]]; then
 			single_file=true
 			header_file=false
@@ -213,7 +213,7 @@ __mk_cpp_project() {
 	fi
 
 	if [[ ${header_file} == true ]]; then
-		__ask_yes_or_no "- Do you want an impl file?" "no" "Header only"
+		__ask_yes_or_no "- Do you want an impl file?" "no" "Header only" "Add implementation file"
 		if [[ $? -eq 0 ]]; then
 			impl_file=true
 		fi
@@ -222,7 +222,7 @@ __mk_cpp_project() {
 	# Add test files
 	local add_tests=true
 
-	__ask_yes_or_no "Add tests?" "yes" "Adding tests folder"
+	__ask_yes_or_no "Add tests?" "yes" "Adding tests folder" "No tests"
 	if [[ $? -ne 0 ]]; then
 		add_tests=false
 	fi
@@ -293,8 +293,12 @@ __mk_cpp_project() {
 
 	# Make test directory and test template
 	if [[ $add_tests == true ]]; then
-		test_dir="tests"
-		test_file="test_${name}.cpp"
+		local test_dir="tests"
+		local test_file="test_${name}.cpp"
+		local test_func="int add"
+		if [[ $trailing_ret == true ]]; then
+			test_func="auto add"
+		fi
 
 		if mkdir tests &>/dev/null; then
 			touch "${test_dir}/${test_file}" &>/dev/null
@@ -307,9 +311,14 @@ __mk_cpp_project() {
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
+// Remove me!
+${test_func}(int a, int b) {
+	return a + b;
+}
+
 // Add your test cases here.
-TEST_CASE() {
-    REQUIRE();
+TEST_CASE("Should add a and b", "[add]") {
+	REQUIRE(add(2, 2) == 4);
 }
 END
 		else
