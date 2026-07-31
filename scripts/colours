@@ -36,6 +36,85 @@ __make_styles() {
   [[ $quiet ]] || echo "done."
 }
 
+####################
+# Combining styles #
+####################
+
+# We can do this in several different ways...
+__make_combinations() {
+  local max=${2:-9}
+
+  if [[ $1 -eq $max ]]; then
+    echo "$1"
+    return
+  fi
+
+  echo "$1 "
+  __make_combinations $((${1} + 1))
+}
+
+__make_combining_styles() {
+
+  local quiet=
+  if [[ $1 == '-q' || $1 == '-s' ]]; then
+    quiet=true
+  fi
+
+  # NOTE: Some styles not available in all terminal emulators.
+  # NOTE: Underline has more features accesible with ":".
+  #
+  # Let's try a different approach here.
+  #                  0      1    2   3      4         5     6 7       8      9
+  declare -a styles=(normal bold dim italic underline blink _ reverse hidden strike)
+
+  [[ $quiet ]] || echo "Generating style functions: "
+
+  # `normal` and `hidden` don't combine with other styles;
+  eval "normal () { printf \"\033[0m%s\" \"\$*\" ;}"
+
+  for i in {1..9}; do
+
+    # echo "${styles[$i]}:"
+
+    local fname=
+    local styleNumber=
+    local previous=
+
+    # TODO: There's one missing step in this algorithm!
+    for k in $(__make_combinations "$i" 9); do
+      # Skip `fast blink` for now.
+      if [[ $k -eq 6 ]]; then continue; fi
+
+      # Skip `hidden` for now.
+      if [[ $k -eq 8 ]]; then continue; fi
+
+      # `bold` and `dim` don't combine
+      if [[ $previous -eq 1 && $k -eq 2 ]]; then continue; fi
+
+      if [[ -n $fname ]]; then
+        fname+='_'
+      fi
+
+      fname+=${styles[$k]}
+
+      if [[ -n $styleNumber ]]; then
+        styleNumber+=';'
+      fi
+
+      styleNumber+=$k
+
+      # echo "Function: $fname; Code: \033[${styleNumber}m"
+      eval "${fname}() { printf \"\033[${styleNumber}m%s\033[0m\" \"\$*\" ; }"
+
+      previous=$k
+    done
+
+    # echo "End."
+  done
+
+  [[ $quiet ]] || echo "done."
+}
+
 ###################################################################################
 # Create named colour functions for the first 8 colours of the terminals palette. #
 ###################################################################################
