@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+#
+# Colorise your Bash scripts.
+#
+#
+
+make_colour_functions() {
+  local quiet=
+  if [[ $1 == '-q' || $1 == '-s' ]]; then
+    quiet=true
+  fi
+
+  local colours=(black red green yellow blue pink cyan white)
+
+  [[ $quiet ]] || echo -n "Generating colour functions for: "
+  for i in "${!colours[@]}"; do
+    [[ $quiet ]] || echo -n "${colours[$i]}, "
+    eval "${colours[$i]} () { printf \"\033[3${i}m%s\033[0m\" \"\$*\" ;}"
+  done
+
+  [[ $quiet ]] || echo "done."
+}
