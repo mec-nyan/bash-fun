@@ -40,6 +40,27 @@ __make_styles() {
 # Combining styles #
 ####################
 
+__make_all_combinations() {
+  # We want something like this:
+  # start = 1
+  # end = 3
+  #
+  # 1; 1,2; 1,3; 1,2,3;
+  # 2; 2,3;
+  # 3;
+  #
+  # That can be understood as:
+  # For each item:
+  #   if it is the last item, return it.
+  #   else: take the rest of the list
+  #     combine each item
+  #     move the first element to the (head)
+  #     repeat as necessary.
+  #
+  # It seems like a 'sliidng window' problem or similar.
+  :
+}
+
 # We can do this in several different ways...
 __make_combinations() {
   local max=${2:-9}
