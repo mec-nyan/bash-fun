@@ -3,6 +3,38 @@
 # Colorise your Bash scripts.
 #
 # Here we experiment with differnt ways to use the terminal available colours.
+#
+# TODO:
+#     - Functions that combine different escape codes,
+#       i.e. `bold_red` will produce something like `\033[1;31m%s\033[0m]` etc
+#
+
+###############################
+# I'll put styles here too... #
+###############################
+
+__make_styles() {
+  local quiet=
+  if [[ $1 == '-q' || $1 == '-s' ]]; then
+    quiet=true
+  fi
+
+  # NOTE: Some styles not available in all terminal emulators.
+  # NOTE: Underline has more features accesible with ":".
+  local styles=(normal bold dim italic underline blink1 blink2 reverse hide strike)
+
+  [[ $quiet ]] || echo -n "Generating style functions for: "
+
+  for i in "${!styles[@]}"; do
+
+    [[ $quiet ]] || echo -n "${styles[$i]}, "
+
+    eval "${styles[$i]} () { printf \"\033[${i}m%s\033[0m\" \"\$*\" ;}"
+
+  done
+
+  [[ $quiet ]] || echo "done."
+}
 
 ###################################################################################
 # Create named colour functions for the first 8 colours of the terminals palette. #
@@ -49,6 +81,7 @@ __basic_palette() {
 
 make_colour_functions() {
   __basic_palette -v
+  __make_styles -v
 }
 
 # TOOD: Should we `unset` some variables and/or functions?
