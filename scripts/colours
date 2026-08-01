@@ -104,13 +104,22 @@ __make_combining_styles() {
   eval "normal () { printf \"\033[0m%s\" \"\$*\" ;}"
 
   for ((mask = 0; mask < (1 << n); mask++)); do
+    # function name.
     printf "{ "
     for ((i = 0; i < n; i++)); do
       if ((mask & (1 << i))); then
         printf "%s_" "${styles[i]}"
       fi
     done
-    printf "}\n"
+    printf "}: "
+    # escape sequence:
+    # TODO: These indices need to be adjusted!
+    for ((i = 0; i < n; i++)); do
+      if ((mask & (1 << i))); then
+        printf "%d;" "$i"
+      fi
+    done
+    printf "\n"
   done
 
   # for i in {1..9}; do
