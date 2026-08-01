@@ -91,8 +91,11 @@ __make_combining_styles() {
   # NOTE: Underline has more features accesible with ":".
   #
   # Let's try a different approach here.
-  #                  0      1    2   3      4         5     6 7       8      9
-  declare -a styles=(normal bold dim italic underline blink _ reverse hidden strike)
+  #                    0      1    2   3      4         5     6 7       8      9
+  # declare -a styles=(normal bold dim italic underline blink _ reverse hidden strike)
+  #
+  # Use only the ones that matter, correct their indices later
+  declare -a styles=(bold dim italic underline blink reverse strike)
   local n=${#styles[@]}
 
   [[ $quiet ]] || echo "Generating style functions: "
