@@ -49,16 +49,22 @@ __make_all_combinations() {
   # 2; 2,3;
   # 3;
   #
-  # That can be understood as:
-  # For each item:
-  #   if it is the last item, return it.
-  #   else: take the rest of the list
-  #     combine each item
-  #     move the first element to the (head)
-  #     repeat as necessary.
-  #
-  # It seems like a 'sliidng window' problem or similar.
-  :
+  # Since the number of subsets of a set of `n` elements is 2 ^ n,
+  # we can use the binary representation of the integers in the range 0..(2^n)
+  # to find all the subsets:
+
+  local set=($@)
+  local n=${#set[@]}
+
+  for ((mask = 0; mask < (1 << n); mask++)); do
+    printf "{ "
+    for ((i = 0; i < n; i++)); do
+      if ((mask & (1 << i))); then
+        printf "%s " "${set[i]}"
+      fi
+    done
+    printf "}\n"
+  done
 }
 
 # We can do this in several different ways...
